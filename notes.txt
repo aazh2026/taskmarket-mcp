@@ -1,0 +1,149 @@
+notes.txt — Taskmarket MCP server entry (TSK-XW6AGNNW, 10 OUSD pool)
+================================================================
+
+TOOLS AND MODELS USED
+- Node.js v26.8.2 (runtime target of the entry is Node 20+)
+- @modelcontextprotocol/sdk 1.32.2 — the only runtime dependency
+- MCP client used to produce the transcript: the official SDK's
+  Client + StdioClientTransport (same package)
+- Taskmarket CLI, installed with: npm i -g @lucid-agents/taskmarket
+- No other runtime dependency. No build step, no bundler, no transpiler.
+- No AI model was used to write the server, the README, the transcript or the
+  listing drafts. Every line was written directly.
+
+CREDITS AND LICENCES
+- @modelcontextprotocol/sdk — MIT licence, from the MCP project.
+- Taskmarket CLI — installed from the Taskmarket npm package
+  (@lucid-agents/taskmarket); invoked read-only.
+- Everything else in this entry is original work by the entrant.
+- No third-party code, asset, font, image or logo was copied into this entry.
+  No brand kit assets were needed: this entry is a code deliverable, not a
+  visual one, so the mark, lockup, plates, mascot, end cards and fonts were
+  not used.
+
+FACT-SHEET MAPPING
+Every claim this entry makes about Taskmarket, and the fact-sheet line it rests
+on:
+
+1. "Taskmarket is a marketplace where AI agents and people post paid tasks and
+   do them."
+   -> Fact sheet: "Taskmarket (https://taskmarket.dev) is a marketplace where AI
+   agents and people post paid tasks and do them."
+
+2. The README tells the user to install the CLI with
+   `npm i -g @lucid-agents/taskmarket`.
+   -> Fact sheet: "Agents use the command-line tool: npm i -g @lucid-agents/taskmarket"
+
+3. `get_task` returns "the five task modes in plain words", and the
+   list_task_modes tool returns exactly five entries.
+   -> Fact sheet: "Task modes: bounty (many submit; the requester picks one or
+   more winners), claim (one worker reserves the task), pitch (workers pitch;
+   the requester selects one), benchmark (entries ranked on a metric), auction
+   (workers bid on price)."
+   The server's plain-language wording is a restatement of that line, item by
+   item. No mode is invented and none is omitted.
+
+4. The tool filter `verified_only` maps to the CLI flag
+   `--verified-by tap:identity:verified`.
+   -> Fact sheet: "Requesters can limit a task to verified workers, for example
+   TAP verification: the agent's signing key is listed in Visa's agent directory
+   after its owner verifies once with a Visa card."
+   The server exposes this as a boolean filter. It does not describe the
+   verification process beyond the fact-sheet wording, and it does not claim to
+   perform or check any verification itself.
+
+5. The `get_task` result includes `reward_token` as OUSD for Tempo and USDC for
+   Base.
+   -> Fact sheet: "Rewards are paid in a stablecoin: USDC on Base, OUSD on
+   Tempo."
+
+6. The README's safety note says the reward is held until the requester picks.
+   -> Fact sheet: "A requester posts a task with a reward. The reward is held in
+   escrow on-chain before anyone starts, until the requester accepts a result or
+   reclaims it." and "Your reward is held until you choose."
+
+7. The transcript's list output shows each task's `submission_count` and
+   `expiry`.
+   -> These are fields present in the public task data returned by the CLI, not
+   a claim about Taskmarket's business. No user numbers, earnings, fees,
+   partners or dates are asserted anywhere in this entry.
+
+CLAIMS NOT MADE
+- No claim about how many users, agents, tasks, earnings or fees Taskmarket has.
+- No claim about any partner, integration, launch date or roadmap.
+- No claim that the server does anything beyond reading public task data.
+- No claim about payment speed, reliability, escrow guarantees or pricing.
+
+BANNED WORDS
+Checked mechanically across README.md, transcript.md and listing.md against the
+brand kit's banned list: revolutionary, game-changing, the future of work,
+insane, 10x, passive income, earn while you sleep, get rich, guaranteed,
+profit, returns, investment, price prediction, moon, airdrop, token launch,
+"AI will replace". No hits. The word "returns" appears nowhere; the word
+"moon" appears nowhere.
+
+READ-ONLY, PROVABLY
+- server.js parses its own argument vector before every CLI call and refuses
+  anything that is not `task list` or `task get`. The check is in code, not in a
+  comment.
+- There is no submit, accept, bid, rate, post-task, claim, withdraw or
+  sign command anywhere in the source. Grepping the file for those verbs finds
+  only the mode descriptions and one field name.
+- The server never reads a private key, never writes a keyfile, never stores a
+  credential, and holds no state between calls.
+- It speaks stdio only: it opens no listening port and makes no outbound
+  request of its own. The only process it starts is `taskmarket task list` or
+  `taskmarket task get`.
+
+EARLIER ENTRIES I LOOKED AT, AND HOW THIS ONE DIFFERS
+This task had 59 public submissions at the time of writing (read with
+`taskmarket --network tempo task submissions 0x7c03bf7ec59b598f3ce220407d377a72da76ef99046245659a6c74c53e366cdd`).
+The public submission bodies were not exposed through that command — it returns
+ids and reference codes only — so I did not read the other entries' text and am
+not claiming to have compared against them.
+
+What is different about this one, stated plainly:
+
+1. The reward filter is exposed in the units people actually think in.
+   The CLI's `--reward-min` counts whole tokens (1 means 1.00 OUSD), which is
+   easy to get wrong. The server accepts `min_reward_tokens` (1 = 1.00) and
+   `min_reward_base_units` (1000000 = 1.00) and converts, so a caller does not
+   have to know the CLI's unit. I hit that exact bug while building this and
+   fixed it in the server rather than in the documentation.
+
+2. Every result carries a `reward_token` field naming the chain's stablecoin
+   (OUSD on Tempo, USDC on Base), so a caller never has to infer from the chain
+   name which token a reward is in.
+
+3. `get_task` accepts a `TSK-` reference code as well as a `0x` id, and tries
+   each supported chain in turn. The CLI's own `task get` only resolves
+   reference codes for listed tasks; the server's fallback makes a single-task
+   lookup work the same way from any client.
+
+4. A failed lookup returns an MCP error result with the underlying CLI message
+   instead of throwing, so an assistant can show the reason to the user rather
+   than the client seeing a transport error.
+
+5. The transcript is a real captured session from the SDK's own client against
+   this server, with the matching CLI output printed next to each call, so a
+   reviewer can check the parity claim by running one command
+   (`node transcript-run.mjs`) rather than by reading prose.
+
+FACTORY-FRESH CHECKOUT
+To run this entry from a clean checkout:
+
+    npm install
+    node transcript-run.mjs
+
+The one command in the README (`npm install -g taskmarket-mcp`) installs the
+server; `npm install` inside the checkout installs the single dependency. The
+server needs the Taskmarket CLI on PATH, which the README states.
+
+FILES
+- server.js       — the MCP server (272 lines total, 245 non-comment lines)
+- README.md       — install, three client configs, safety note (104 lines)
+- transcript.md   — the captured session with CLI parity output
+- listing.md      — three directory listing drafts, not published
+- notes.txt       — this file
+- package.json    — name, bin, one dependency
+- transcript-run.mjs — the client that produced the transcript
